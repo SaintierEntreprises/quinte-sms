@@ -1,0 +1,45 @@
+name: Pronostic Quinte du jour
+
+on:
+  schedule:
+    # Heures en UTC : 6h15 et 7h45 UTC = 7h15 et 8h45 a Paris en hiver (8h15 / 9h45 en ete).
+    # Deux passages au cas ou GitHub retarde ou rate le premier.
+    - cron: "15 6 * * *"
+    - cron: "45 7 * * *"
+  workflow_dispatch: {}   # bouton "Run workflow" pour tester a la main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: quinte
+  cancel-in-progress: false
+
+jobs:
+  prono:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install beautifulsoup4==4.12.3
+
+      - id: prono
+        run: python quinte.py --out quinte.txt
+
+      - name: Publier quinte.txt
+        run: |
+          git config user.name "quinte-bot"
+          git config user.email "quinte-bot@users.noreply.github.com"
+          git add quinte.txt
+          git diff --cached --quiet || git commit -m "Pronostic du $(TZ=Europe/Paris date +%d/%m)"
+          git push
+
+      - name: Signaler une erreur (e-mail GitHub automatique)
+        if: steps.prono.outputs.ok != 'true'
+        run: |
+          echo "Pronostic introuvable : voir quinte.txt"
+          exit 1
