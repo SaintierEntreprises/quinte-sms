@@ -33,7 +33,8 @@ from bs4 import BeautifulSoup
 
 EQUIDIA_URL = "https://www.equidia.fr/pronostics"
 TURF_BASE = "https://www.turf-fr.com"
-TURF_LISTE = TURF_BASE + "/courses-pmu/pronostics/presse"
+TURF_QUINTE = TURF_BASE + "/quinte/presse/"           # page presse du quinte du jour
+TURF_LISTE = TURF_BASE + "/courses-pmu/pronostics/presse"  # secours
 UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/130.0 Safari/537.36"
@@ -181,6 +182,14 @@ def synthese(pronos: list[list[str]], n: int = 8) -> list[str]:
 
 
 def presse_du_jour(q: dict, get=fetch) -> list[str]:
+    # 1) page dediee au quinte du jour (date verifiee dans parse_presse)
+    try:
+        pronos = parse_presse(get(TURF_QUINTE), q["date"])
+        if pronos:
+            return synthese(pronos)
+    except Exception:
+        pass
+    # 2) secours : retrouver la course via la barre laterale des pages presse
     a_visiter = [TURF_LISTE]
     vus: set[str] = set()
     tous_liens: list[tuple[str, str]] = []

@@ -2,10 +2,12 @@ name: Pronostic Quinte du jour
 
 on:
   schedule:
-    # Heures en UTC : 6h15 et 7h45 UTC = 7h15 et 8h45 a Paris en hiver (8h15 / 9h45 en ete).
-    # Deux passages au cas ou GitHub retarde ou rate le premier.
+    # Heures en UTC. Hiver : 5h30, 6h30, 7h15 a Paris. Ete : 6h30, 7h30, 8h15.
+    # Trois passages au cas ou GitHub retarde ou saute un passage.
+    # Raccourci iPhone conseille : 8h00.
+    - cron: "30 4 * * *"
+    - cron: "30 5 * * *"
     - cron: "15 6 * * *"
-    - cron: "45 7 * * *"
   workflow_dispatch: {}   # bouton "Run workflow" pour tester a la main
 
 permissions:

@@ -9,6 +9,7 @@ import quinte  # noqa: E402
 
 PAGES = {
     quinte.EQUIDIA_URL: "equidia.html",
+    quinte.TURF_QUINTE: "turf_course.html",
     quinte.TURF_LISTE: "turf_liste.html",
     quinte.TURF_BASE + "/courses-pmu/pronostics/presse/r1-prix-bernard-secly-390466": "turf_r1c1.html",
     quinte.TURF_BASE + "/courses-pmu/pronostics/presse/r1-prix-la-haye-jousselin-390471": "turf_course.html",
@@ -34,8 +35,15 @@ def test_complet():
     print(txt, f"\n({len(txt)} caracteres)\n")
 
 
+def test_presse_secours():
+    # page /quinte/presse/ en panne : on passe par la barre laterale
+    get = lambda u: faux_get(u, pannes={quinte.TURF_QUINTE})
+    txt, ok = quinte.construire(date(2026, 11, 15), get=get, log=lambda *_: None)
+    assert ok and "PRESSE" in txt, txt
+
+
 def test_presse_en_panne():
-    get = lambda u: faux_get(u, pannes={quinte.TURF_LISTE})
+    get = lambda u: faux_get(u, pannes={quinte.TURF_QUINTE, quinte.TURF_LISTE})
     txt, ok = quinte.construire(date(2026, 11, 15), get=get, log=lambda *_: None)
     assert ok and "EQUIDIA" in txt and "PRESSE" not in txt, txt
 

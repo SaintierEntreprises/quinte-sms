@@ -2,9 +2,9 @@
 
 Chaque matin, GitHub (gratuit) récupère deux choses et les écrit dans `quinte.txt` :
 - le pronostic Quinté+ d'Equidia ;
-- la synthèse de la presse : les ~30 journaux recensés par turf-fr.com, fusionnés en un classement où la 1re place vaut 8 points et la 8e vaut 1 point.
+- la synthèse de la presse : les ~30 journaux recensés par turf-fr.com (page /quinte/presse/), fusionnés en un classement où la 1re place vaut 8 points et la 8e vaut 1 point.
 
-À 10 h, un raccourci sur ton iPhone lit ce fichier et l'envoie par SMS à ton grand-père.
+À 8 h, un raccourci sur ton iPhone lit ce fichier et l'envoie par SMS à ton grand-père.
 
 Exemple de SMS (un seul SMS, lignes courtes pour un petit écran) :
 
@@ -54,7 +54,7 @@ En cas d'échec, GitHub t'envoie un e-mail automatiquement.
 
 ## 3. Le raccourci iPhone (10 min)
 
-App **Raccourcis** → onglet **Automatisation** → **+** → **Heure de la journée** → 10:00, **Tous les jours** → **Exécuter immédiatement** → Nouveau raccourci vide. Ajoute ces actions dans l'ordre :
+App **Raccourcis** → onglet **Automatisation** → **+** → **Heure de la journée** → 8:00, **Tous les jours** → **Exécuter immédiatement** → Nouveau raccourci vide. Ajoute ces actions dans l'ordre :
 
 1. **URL** : `https://raw.githubusercontent.com/TON-PSEUDO/quinte-sms/main/quinte.txt`
 2. **Obtenir le contenu de l'URL**
@@ -75,7 +75,7 @@ App **Raccourcis** → onglet **Automatisation** → **+** → **Heure de la jou
 
 ## Limites à connaître
 
-- **Téléphone éteint ou hors réseau à 10 h** → aucun SMS ce jour-là.
+- **Téléphone éteint ou hors réseau à 8 h** → aucun SMS ce jour-là.
 - **Changement de structure du site Equidia** → le script affiche ERREUR, tu reçois l'alerte, et il faut adapter `quinte.py` (environ 10 min avec Claude Code).
 - **Changement de structure de turf-fr.com** → la ligne PRESSE disparaît du SMS. Dans l'onglet Actions, le log affiche « presse indisponible ».
 - **Mise en veille par GitHub** : GitHub désactive les tâches planifiées d'un dépôt public sans activité pendant 60 jours. Le commit quotidien de `quinte.txt` devrait suffire à l'éviter. Si GitHub t'envoie un e-mail « scheduled workflow disabled », clique sur « Enable ».
