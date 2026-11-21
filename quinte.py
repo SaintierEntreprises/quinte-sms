@@ -44,6 +44,7 @@ UA = (
 MOIS = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet",
         "aout", "septembre", "octobre", "novembre", "decembre"]
 SMS_MAX = 160
+AVEC_PRESSE = False  # presse mise de cote temporairement : passer a True pour la remettre
 
 
 # ---------------------------------------------------------------- utilitaires
@@ -323,7 +324,8 @@ def construire(jour: date, get=fetch, log=print) -> tuple[str, bool]:
         return f"ERREUR {jour:%d/%m} : pronostic Equidia du jour introuvable", False
     presse = None
     try:
-        presse = presse_du_jour(q, get)
+        if AVEC_PRESSE:
+            presse = presse_du_jour(q, get)
     except Exception as e:
         log(f"[info] presse indisponible : {e}")
     return message(q, presse), True

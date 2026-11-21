@@ -6,6 +6,7 @@ from datetime import date
 ICI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(ICI))
 import quinte  # noqa: E402
+quinte.AVEC_PRESSE = True  # les tests couvrent aussi la presse
 
 PAGES = {
     quinte.EQUIDIA_URL: "equidia.html",
