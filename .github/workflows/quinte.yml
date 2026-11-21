@@ -1,14 +1,15 @@
 name: Pronostic Quinte du jour
 
 on:
+  # Les taches planifiees GitHub arrivent avec des heures de retard (constate : 8 a 9 h).
+  # On prepare donc le quinte de DEMAIN des la veille (16h, 18h, 20h, 22h a Paris en hiver) :
+  # meme avec 9 h de retard, le fichier est pret avant l'envoi de 8 h.
   schedule:
-    # Heures en UTC. Hiver : 5h30, 6h30, 7h15 a Paris. Ete : 6h30, 7h30, 8h15.
-    # Trois passages au cas ou GitHub retarde ou saute un passage.
-    # Raccourci iPhone conseille : 8h00.
-    - cron: "30 4 * * *"
-    - cron: "30 5 * * *"
-    - cron: "15 6 * * *"
-  workflow_dispatch: {}   # bouton "Run workflow" pour tester a la main
+    - cron: "0 15 * * *"
+    - cron: "0 17 * * *"
+    - cron: "0 19 * * *"
+    - cron: "0 21 * * *"
+  workflow_dispatch: {}
 
 permissions:
   contents: write

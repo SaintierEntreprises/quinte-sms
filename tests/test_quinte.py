@@ -48,6 +48,18 @@ def test_presse_en_panne():
     assert ok and "EQUIDIA" in txt and "PRESSE" not in txt, txt
 
 
+def test_equidia_secours_page_quinte():
+    # cas reel du 17/11 : /pronostics n'a que "demain", le prono du jour est sur /Quinte
+    pages = dict(PAGES)
+    pages[quinte.EQUIDIA_URL] = "equidia_demain_seul.html"
+    pages[quinte.EQUIDIA_QUINTE] = "equidia_quinte.html"
+    get = lambda u: open(os.path.join(ICI, pages[u]), encoding="utf-8").read() if u in pages else (_ for _ in ()).throw(RuntimeError(u))
+    txt, ok = quinte.construire(date(2026, 11, 17), get=get, log=lambda *_: None)
+    assert ok, txt
+    assert txt.splitlines()[:5] == ["QUINTE 17/11 13H57", "CHANTILLY", "EQUIDIA", "5 4 8 7", "14"], txt
+    print(txt, "\n")
+
+
 def test_mauvais_jour():
     txt, ok = quinte.construire(date(2026, 11, 16), get=faux_get, log=lambda *_: None)
     assert not ok and txt.startswith("ERREUR 16/11"), txt

@@ -25,15 +25,17 @@ import time
 import unicodedata
 import urllib.error
 import urllib.request
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from urllib.parse import urljoin
 from zoneinfo import ZoneInfo
 
 from bs4 import BeautifulSoup
 
 EQUIDIA_URL = "https://www.equidia.fr/pronostics"
+EQUIDIA_QUINTE = "https://www.equidia.fr/Quinte"  # page du quinte du jour (secours)
 TURF_BASE = "https://www.turf-fr.com"
 TURF_QUINTE = TURF_BASE + "/quinte/presse/"           # page presse du quinte du jour
+TURF_DEMAIN = TURF_BASE + "/quinte-demain/presse/"    # page presse du quinte de demain
 TURF_LISTE = TURF_BASE + "/courses-pmu/pronostics/presse"  # secours
 UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
@@ -113,6 +115,60 @@ def parse_equidia(html: str) -> list[dict]:
     return blocs
 
 
+def parse_equidia_quinte(html: str) -> dict | None:
+    """Page equidia.fr/Quinte : la course est donnee par l'URL canonique, le prono par le bloc
+    "Pronostic Quinte d'Equidia" (quelle que soit sa mise en forme)."""
+    soup = BeautifulSoup(html, "html.parser")
+    can = soup.find("link", rel="canonical")
+    m = re.search(r"/courses/(\d{4}-\d{2}-\d{2})/R(\d+)/C(\d+)", can.get("href", "") if can else "")
+    if not m:
+        return None
+    chemin = m.group(0)
+    titre = next((h for h in soup.find_all(["h2", "h3"])
+                  if re.search(r"Pronostic Quint.*d.Equidia", h.get_text())), None)
+    partants: list[str] = []
+    bloc = titre
+    for _ in range(10):
+        if bloc is None:
+            break
+        cartes = bloc.select('[class*="partant--card"] span')
+        if len(cartes) >= 5:
+            partants = [clean(x.get_text()) for x in cartes if clean(x.get_text()).isdigit()]
+            break
+        bloc = bloc.parent
+    heure = ""
+    for c in soup.select(".course-container"):
+        a = c if c.name == "a" else (c.find_parent("a") or c.find("a"))
+        if a and a.get("href", "").rstrip("/") == chemin:
+            h = c.select_one(".heure-course")
+            heure = clean(h.get_text()) if h else ""
+            break
+    lieu = prix = ""
+    h1 = soup.find("h1")
+    mh = re.match(r"^R\d+\s+(.*?)\s+C\d+\s*(.*)$", clean(h1.get_text()) if h1 else "")
+    if mh:
+        lieu, prix = ascii_txt(mh.group(1)).upper(), mh.group(2)
+    return {
+        "date": date.fromisoformat(m.group(1)), "reunion": int(m.group(2)), "course": int(m.group(3)),
+        "heure": heure, "lieu": lieu, "prix": prix, "partants": partants,
+    }
+
+
+def equidia_du_jour(jour: date, get=fetch) -> dict | None:
+    # 1) page des pronostics (bloc "quinte-prono" avec lien de course)
+    try:
+        q = next((b for b in parse_equidia(get(EQUIDIA_URL)) if b["date"] == jour), None)
+        if q and len(q["partants"]) >= 5:
+            return q
+    except Exception:
+        pass
+    # 2) page du quinte du jour
+    q = parse_equidia_quinte(get(EQUIDIA_QUINTE))
+    if q and q["date"] == jour and len(q["partants"]) >= 5:
+        return q
+    return None
+
+
 # -------------------------------------------------------- Presse (turf-fr.com)
 def liens_presse(html: str) -> list[tuple[str, str]]:
     soup = BeautifulSoup(html, "html.parser")
@@ -182,13 +238,14 @@ def synthese(pronos: list[list[str]], n: int = 8) -> list[str]:
 
 
 def presse_du_jour(q: dict, get=fetch) -> list[str]:
-    # 1) page dediee au quinte du jour (date verifiee dans parse_presse)
-    try:
-        pronos = parse_presse(get(TURF_QUINTE), q["date"])
-        if pronos:
-            return synthese(pronos)
-    except Exception:
-        pass
+    # 1) pages dediees au quinte du jour / de demain (date verifiee dans parse_presse)
+    for url in (TURF_QUINTE, TURF_DEMAIN):
+        try:
+            pronos = parse_presse(get(url), q["date"])
+            if pronos:
+                return synthese(pronos)
+        except Exception:
+            pass
     # 2) secours : retrouver la course via la barre laterale des pages presse
     a_visiter = [TURF_LISTE]
     vus: set[str] = set()
@@ -236,10 +293,10 @@ def message(q: dict, presse: list[str] | None) -> str:
 
 def construire(jour: date, get=fetch, log=print) -> tuple[str, bool]:
     try:
-        q = next((b for b in parse_equidia(get(EQUIDIA_URL)) if b["date"] == jour), None)
+        q = equidia_du_jour(jour, get)
     except Exception as e:
         return f"ERREUR {jour:%d/%m} : Equidia {e}"[:SMS_MAX], False
-    if not q or len(q["partants"]) < 5:
+    if not q:
         return f"ERREUR {jour:%d/%m} : pronostic Equidia du jour introuvable", False
     presse = None
     try:
@@ -254,9 +311,26 @@ def main() -> int:
     ap.add_argument("--date", help="AAAA-MM-JJ (defaut : aujourd'hui a Paris)")
     ap.add_argument("--out", default="quinte.txt")
     a = ap.parse_args()
-    jour = date.fromisoformat(a.date) if a.date else datetime.now(ZoneInfo("Europe/Paris")).date()
+    maintenant = datetime.now(ZoneInfo("Europe/Paris"))
+    if a.date:
+        jour = date.fromisoformat(a.date)
+    elif maintenant.hour >= 12:
+        # l'apres-midi et le soir, on prepare le quinte de DEMAIN (publie la veille par Equidia
+        # et la presse) : le fichier est pret bien avant l'envoi du matin, meme si GitHub
+        # lance la tache avec plusieurs heures de retard.
+        jour = maintenant.date() + timedelta(days=1)
+    else:
+        jour = maintenant.date()
 
     texte, ok = construire(jour)
+    # Ne jamais remplacer un bon pronostic du meme jour par une erreur
+    try:
+        ancien = open(a.out, encoding="utf-8").read()
+    except OSError:
+        ancien = ""
+    if not ok and ancien.startswith(f"QUINTE {jour:%d/%m}"):
+        print(f"[info] erreur ignoree, pronostic du {jour:%d/%m} deja present")
+        texte, ok = ancien.strip(), True
     with open(a.out, "w", encoding="utf-8") as f:
         f.write(texte + "\n")
     print(texte)

@@ -86,3 +86,16 @@ App **Raccourcis** → onglet **Automatisation** → **+** → **Heure de la jou
 pip install beautifulsoup4
 python tests/test_quinte.py
 ```
+
+## IMPORTANT (18/11) — déclenchement par l'iPhone
+
+Les tâches planifiées de GitHub ont tourné avec 8 à 9 h de retard (passages à 14 h-16 h au lieu de 5 h 30-7 h 15), c'est-à-dire après le quinté. On a donc supprimé la planification. C'est maintenant le raccourci qui lance le script, puis qui lit le résultat :
+
+1. **Obtenir le contenu de l'URL**, avec la méthode POST, sur
+   `https://api.github.com/repos/SaintierEntreprises/quinte-sms/actions/workflows/quinte.yml/dispatches`
+   - En-têtes : `Authorization` = `Bearer <TOKEN>` et `Accept` = `application/vnd.github+json`
+   - Corps JSON : `ref` = `master`
+2. **Attendre** 90 secondes.
+3. L'URL lue est désormais `https://api.github.com/repos/SaintierEntreprises/quinte-sms/contents/quinte.txt`, avec l'en-tête `Accept` = `application/vnd.github.raw`. Cette adresse donne le fichier à jour, alors que raw.githubusercontent.com garde un cache de 5 minutes.
+
+Pour créer le token : GitHub → Settings → Developer settings → Fine-grained tokens, accès au seul dépôt quinte-sms, avec les permissions Actions « Read and write » et Contents « Read-only ». Pense à le renouveler avant son expiration.
