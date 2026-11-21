@@ -1,8 +1,1 @@
-QUINTE 21/11 15H15
-AUTEUIL
-EQUIDIA
-8 1 6 7
-9 2 10 12
-PRESSE
-8 2 6 1
-7 10 9 12
+ERREUR 22/11 : pronostic Equidia du jour introuvable
