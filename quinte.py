@@ -163,9 +163,32 @@ def equidia_du_jour(jour: date, get=fetch) -> dict | None:
     except Exception:
         pass
     # 2) page du quinte du jour
-    q = parse_equidia_quinte(get(EQUIDIA_QUINTE))
-    if q and q["date"] == jour and len(q["partants"]) >= 5:
-        return q
+    pages_vues = []
+    try:
+        html = get(EQUIDIA_QUINTE)
+        pages_vues.append(html)
+        q = parse_equidia_quinte(html)
+        if q and q["date"] == jour and len(q["partants"]) >= 5:
+            return q
+    except Exception:
+        pass
+    # 3) page de la course elle-meme (le prono de demain y est publie des la veille)
+    try:
+        pages_vues.append(get(EQUIDIA_URL))
+    except Exception:
+        pass
+    vus = set()
+    for html in pages_vues:
+        for chemin in re.findall(rf"/courses/{jour:%Y-%m-%d}/R\d+/C\d+", html):
+            if chemin in vus:
+                continue
+            vus.add(chemin)
+            try:
+                q = parse_equidia_quinte(get("https://www.equidia.fr" + chemin))
+            except Exception:
+                continue
+            if q and q["date"] == jour and len(q["partants"]) >= 5:
+                return q
     return None
 
 

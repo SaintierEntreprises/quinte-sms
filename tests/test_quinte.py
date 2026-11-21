@@ -60,6 +60,18 @@ def test_equidia_secours_page_quinte():
     print(txt, "\n")
 
 
+def test_equidia_page_course_veille():
+    # cas reel du 21/11 a 14h : /pronostics et /Quinte n'ont que le jour J,
+    # mais la page de la course du lendemain contient deja le prono
+    pages = dict(PAGES)
+    pages[quinte.EQUIDIA_URL] = "equidia_demain_seul.html"  # contient un lien /courses/2026-11-18/R1/C1
+    pages[quinte.EQUIDIA_QUINTE] = "equidia_quinte.html"     # quinte du 17
+    html = open(os.path.join(ICI, "equidia_quinte.html"), encoding="utf-8").read().replace("2026-11-17/R1/C4", "2026-11-18/R1/C1").replace("C4 PRIX", "C1 PRIX")
+    get = lambda u: html if u.endswith("/courses/2026-11-18/R1/C1") else open(os.path.join(ICI, pages[u]), encoding="utf-8").read()
+    txt, ok = quinte.construire(date(2026, 11, 18), get=get, log=lambda *_: None)
+    assert ok and txt.startswith("QUINTE 18/11"), txt
+
+
 def test_mauvais_jour():
     txt, ok = quinte.construire(date(2026, 11, 16), get=faux_get, log=lambda *_: None)
     assert not ok and txt.startswith("ERREUR 16/11"), txt
